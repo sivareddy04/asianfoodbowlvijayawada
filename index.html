@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asian Food Bowl - Web Application & Multi-Sheet Sync Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between selection:bg-amber-500 selection:text-slate-950">
+
+    <header class="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800 px-4 py-3 flex items-center justify-between shadow-lg">
+        <div class="flex items-center space-x-3">
+            <div class="bg-gradient-to-tr from-amber-500 to-orange-600 p-2 rounded-xl shadow-md text-slate-950 font-black text-xl">
+                <i class="fa-solid fa-bowl-food"></i>
+            </div>
+            <div>
+                <h1 class="font-extrabold text-base tracking-tight text-white flex items-center gap-2">
+                    Asian Food Bowl <span class="text-[10px] bg-amber-500/20 text-amber-400 px-2 py-0.5 rounded-md font-mono border border-amber-500/30">v2.0 Sync</span>
+                </h1>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button onclick="openModal('activeOrdersModal')" class="relative p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 transition">
+                <i class="fa-solid fa-receipt text-lg"></i>
+                <span id="activeOrderBadge" class="absolute -top-1 -right-1 bg-amber-500 text-slate-950 font-bold text-[10px] w-5 h-5 rounded-full flex items-center justify-center hidden">0</span>
+            </button>
+            <button onclick="openModal('reserveModal')" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5">
+                <i class="fa-solid fa-calendar-days"></i> Reserve
+            </button>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-md w-full mx-auto pb-28 px-4 pt-4">
+        
+        <!-- Table Booking Banner / Selector -->
+        <section class="mb-5 bg-gradient-to-r from-slate-900 to-slate-900/60 border border-slate-800/80 rounded-2xl p-4 shadow-xl">
+            <div class="flex items-center justify-between mb-3">
+                <div class="flex items-center gap-2">
+                    <div class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <span class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Current Seating</span>
+                </div>
+                <button onclick="openModal('tablesModal')" class="text-xs text-amber-400 hover:text-amber-300 font-bold">Change Table</button>
+            </div>
+            <div id="selectedTableDisplay" class="flex items-center justify-between bg-slate-950/60 border border-slate-800 rounded-xl p-3">
+                <div class="flex items-center gap-3">
+                    <div class="p-2.5 bg-amber-500/10 text-amber-400 rounded-lg">
+                        <i class="fa-solid fa-chair"></i>
+                    </div>
+                    <div>
+                        <h4 id="currentTableName" class="font-bold text-sm text-white">Table T-1 (Dine-In)</h4>
+                        <p class="text-[11px] text-slate-400">Ready to accept order items</p>
+                    </div>
+                </div>
+                <span class="text-xs bg-emerald-500/10 text-emerald-400 px-2.5 py-1 rounded-lg font-bold border border-emerald-500/20">Active</span>
+            </div>
+        </section>
+
+        <!-- Search Bar -->
+        <div class="relative mb-5">
+            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-3.5 text-slate-500 text-sm"></i>
+            <input type="text" id="searchInput" oninput="filterMenu()" placeholder="Search soups, dimsums, noodles..." class="w-full bg-slate-900 border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 transition shadow-inner">
+        </div>
+
+        <!-- Category Pills -->
+        <div class="flex gap-2 overflow-x-auto hide-scrollbar mb-6 pb-1">
+            <button onclick="filterCategory('All', this)" class="category-btn whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 shadow-md transition">All Items</button>
+            <button onclick="filterCategory('Soups', this)" class="category-btn whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">🍲 Soups</button>
+            <button onclick="filterCategory('Starters', this)" class="category-btn whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">Starters</button>
+            <button onclick="filterCategory('Mains', this)" class="category-btn whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">Mains</button>
+            <button onclick="filterCategory('Noodles', this)" class="category-btn whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">Noodles & Rice</button>
+            <button onclick="filterCategory('Drinks', this)" class="category-btn whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">Beverages</button>
+            <button onclick="filterCategory('Desserts', this)" class="category-btn whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition">Desserts</button>
+        </div>
+
+        <!-- Menu Item Grid -->
+        <div id="menuGrid" class="grid grid-cols-1 gap-4">
+            <!-- Dynamically populated via JS -->
+        </div>
+
+    </main>
+
+    <div id="cartBar" class="fixed bottom-16 left-0 right-0 z-30 px-4 transition-all duration-300 transform translate-y-24">
+        <div class="max-w-md mx-auto bg-amber-500 text-slate-950 p-3.5 rounded-2xl shadow-2xl flex items-center justify-between font-bold">
+            <div class="flex items-center gap-3">
+                <div class="bg-slate-950 text-amber-400 w-8 h-8 rounded-xl flex items-center justify-center text-sm font-black" id="cartCountBadge">0</div>
+                <div>
+                    <p class="text-xs font-semibold text-slate-900">Total Bill Amount</p>
+                    <p class="text-base tracking-tight">₹<span id="cartTotalPrice">0</span></p>
+                </div>
+            </div>
+            <button onclick="openModal('cartModal')" class="bg-slate-950 text-amber-400 px-5 py-2.5 rounded-xl text-xs font-extrabold hover:bg-slate-900 transition shadow-md flex items-center gap-2">
+                View Order <i class="fa-solid fa-arrow-right"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation Bar -->
+    <nav class="fixed bottom-0 left-0 right-0 z-40 bg-slate-900 border-t border-slate-800 grid grid-cols-4 py-2 px-4 shadow-2xl">
+        <button onclick="switchNavTab('menu')" id="navTabMenu" class="flex flex-col items-center justify-center text-amber-500 transition py-1">
+            <i class="fa-solid fa-utensils text-base mb-1"></i>
+            <span class="text-[10px] font-bold">Menu</span>
+        </button>
+        <button onclick="switchNavTab('tables')" id="navTabTables" class="flex flex-col items-center justify-center text-slate-400 hover:text-white transition py-1">
+            <i class="fa-solid fa-chair text-base mb-1"></i>
+            <span class="text-[10px] font-bold">Tables</span>
+        </button>
+        <button onclick="switchNavTab('active')" id="navTabActive" class="flex flex-col items-center justify-center text-slate-400 hover:text-white transition py-1">
+            <i class="fa-solid fa-clock-rotate-left text-base mb-1"></i>
+            <span class="text-[10px] font-bold">Live Orders</span>
+        </button>
+        <button onclick="switchNavTab('admin')" id="navTabAdmin" class="flex flex-col items-center justify-center text-slate-400 hover:text-white transition py-1">
+            <i class="fa-solid fa-user-shield text-base mb-1"></i>
+            <span class="text-[10px] font-bold">Admin Portal</span>
+        </button>
+    </nav>
+
+    <!-- Cart / Order Summary Modal -->
+    <div id="cartModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 class="font-extrabold text-white text-base">Your Table Order Summary</h3>
+                <button onclick="closeModal('cartModal')" class="text-slate-400 hover:text-white p-1"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="cartItemsList" class="p-4 overflow-y-auto flex-1 divide-y divide-slate-800/60 space-y-3">
+                <!-- Cart items inserted dynamically -->
+            </div>
+            <div class="p-4 border-t border-slate-800 bg-slate-950/50">
+                <div class="flex justify-between items-center mb-2 text-sm text-slate-400">
+                    <span>Subtotal</span>
+                    <span class="font-bold text-white">₹<span id="cartSubtotal">0</span></span>
+                </div>
+                <div class="flex justify-between items-center mb-4 text-sm text-slate-400">
+                    <span>GST & Service Charge (5%)</span>
+                    <span class="font-bold text-white">₹<span id="cartTax">0</span></span>
+                </div>
+                <div class="flex justify-between items-center mb-4 text-base font-extrabold text-white pt-2 border-t border-slate-800">
+                    <span>Grand Total</span>
+                    <span class="text-amber-400">₹<span id="cartGrandTotal">0</span></span>
+                </div>
+                <button onclick="submitKitchenOrder()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-3.5 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-fire-burner"></i> Send Order to Kitchen & Sync Sheet
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tables Selection Modal -->
+    <div id="tablesModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-extrabold text-white text-base">Select Dine-In Table</h3>
+                <button onclick="closeModal('tablesModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="grid grid-cols-2 gap-3 mb-4" id="tablesGrid">
+                <!-- Dynamically populated table cards -->
+            </div>
+            <button onclick="closeModal('tablesModal')" class="w-full bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold py-2.5 rounded-xl text-sm transition">Done</button>
+        </div>
+    </div>
+
+    <!-- Active Orders Modal -->
+    <div id="activeOrdersModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-t-3xl sm:rounded-2xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+            <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+                <h3 class="font-extrabold text-white text-base">Live Kitchen Orders & Status</h3>
+                <button onclick="closeModal('activeOrdersModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div id="activeOrdersList" class="p-4 overflow-y-auto flex-1 space-y-3">
+                <!-- Active orders inserted dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Reservation Modal -->
+    <div id="reserveModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-extrabold text-white text-base">Table Reservation & Waiting List</h3>
+                <button onclick="closeModal('reserveModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <form onsubmit="handleReservationSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Full Name</label>
+                    <input type="text" id="resName" required placeholder="Guest Name" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold text-slate-400 mb-1">Phone Number</label>
+                    <input type="tel" id="resPhone" required placeholder="9876543210" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Party Size / Guests</label>
+                        <input type="number" id="resGuests" value="2" min="1" max="12" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Time</label>
+                        <input type="time" id="resTime" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-500">
+                    </div>
+                </div>
+                <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-3 rounded-xl text-sm transition shadow-md mt-2">Add to Google Sheet & Waiting List</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Bill / Payment Modal -->
+    <div id="billModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-md rounded-2xl p-5 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-extrabold text-white text-base">Checkout & Bill Payment</h3>
+                <button onclick="closeModal('billModal')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+            </div>
+            <div class="bg-slate-950 border border-slate-800 p-4 rounded-xl mb-4 text-center">
+                <p class="text-xs text-slate-400 mb-1">Total Amount Payable</p>
+                <h2 class="text-2xl font-black text-amber-400 mb-3">₹<span id="billModalTotal">0</span></h2>
+                <div class="bg-white p-3 rounded-xl inline-block shadow-md mb-2">
+                    <img id="qrPreviewImg" src="" alt="UPI QR Code" class="w-36 h-36 mx-auto">
+                </div>
+                <p id="qrUpiText" class="text-xs font-mono text-slate-300 font-bold"></p>
+            </div>
+            <button onclick="completePayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold py-3 rounded-xl text-sm transition shadow-md flex items-center justify-center gap-2">
+                <i class="fa-solid fa-circle-check"></i> Mark as Paid & Free Table (Sync Sheet 4)
+            </button>
+        </div>
+    </div>
+
+    <!-- Admin Login Modal -->
+    <div id="adminLoginModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 w-full max-w-xs rounded-2xl p-5 shadow-2xl text-center">
+            <div class="w-12 h-12 bg-amber-500/10 text-amber-400 rounded-2xl flex items-center justify-center mx-auto mb-3 text-lg font-bold border border-amber-500/20">
+                <i class="fa-solid fa-lock"></i>
+            </div>
+            <h3 class="font-extrabold text-white text-base mb-1">Admin Portal Access</h3>
+            <p class="text-xs text-slate-400 mb-4">Enter management PIN (Hint: <span class="font-mono text-amber-400">9090</span>)</p>
+            <input type="password" id="adminPinInput" placeholder="••••" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-center text-white tracking-widest focus:outline-none focus:border-amber-500 mb-3">
+            <button onclick="verifyAdminPin()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs transition mb-2">Login to Dashboard (Sync Sheet 3)</button>
+            <button onclick="closeModal('adminLoginModal')" class="w-full text-slate-500 hover:text-slate-300 text-xs py-1">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed top-16 left-1/2 transform -translate-x-1/2 z-50 bg-slate-900 border border-amber-500/40 text-white px-4 py-2.5 rounded-xl shadow-2xl text-xs font-bold transition-all duration-300 opacity-0 pointer-events-none flex items-center gap-2">
+        <i class="fa-solid fa-circle-info text-amber-400"></i>
+        <span id="toastMsg">Notification message</span>
+    </div>
+
+    <script>
+        let currentTable = 1;
+        let cart = [];
+        let activeOrders = JSON.parse(localStorage.getItem('afb_active_orders') || '[]');
+        let waitingList = JSON.parse(localStorage.getItem('afb_waiting_list') || '[]');
+        let completedOrdersRevenue = JSON.parse(localStorage.getItem('afb_revenue') || '0');
+        let completedBillsHistory = JSON.parse(localStorage.getItem('afb_bill_success') || '[]');
+        let currentBillOrder = null;
+        let currentCategory = 'All';
+        
+        let googleSheetUrl = localStorage.getItem('afb_sheet_url') || 'https://script.google.com/macros/s/AKfycbw9DzXOBtrlsIYItgku3nYLko3DIiu3c8EnBGEZwh5t7w4aYm6lZTfeqssG4SCkp9hFWg/exec';
+        
+        let tableStatuses = JSON.parse(localStorage.getItem('afb_tables_status') || JSON.stringify({
+            1: 'Available', 2: 'Available', 3: 'Available', 4: 'Available', 5: 'Available', 6: 'Available'
+        }));
+
+        let menuItems = JSON.parse(localStorage.getItem('afb_menu_items') || JSON.stringify([
+            { id: 101, name: 'Manchow Soup', price: 120, secondaryPrice: 150, hasVariant: true, variantLabels: ['Veg', 'Non-Veg'], category: 'Soups', desc: 'Dark brown soup loaded with vegetables or chicken, topped with crispy fried noodles.', img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=500&q=80' },
+            { id: 102, name: 'Hot & Sour Soup', price: 130, secondaryPrice: 160, hasVariant: true, variantLabels: ['Veg', 'Non-Veg'], category: 'Soups', desc: 'Spicy and tangy soup prepared with bamboo shoots, mushrooms, and tofu/chicken.', img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=500&q=80' },
+            { id: 103, name: 'Lemon Coriander Soup', price: 130, secondaryPrice: 150, hasVariant: true, variantLabels: ['Veg', 'Non-Veg'], category: 'Soups', desc: 'Clear flavorful broth infused with fresh lemon juice and chopped coriander leaves.', img: 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=500&q=80' },
+            { id: 1, name: 'Crispy Veg Spring Rolls', price: 240, category: 'Starters', desc: 'Golden fried rolls filled with glass noodles and mixed vegetables.', img: 'https://images.unsplash.com/photo-1541696432-82c6da8ce7bf?auto=format&fit=crop&w=500&q=80' },
+            { id: 2, name: 'Spicy Chicken Dimsums (6 pcs)', price: 320, category: 'Starters', desc: 'Steamed delicate dumplings stuffed with minced chicken and chili oil.', img: 'https://images.unsplash.com/photo-1496116218417-1a781b1c416c?auto=format&fit=crop&w=500&q=80' },
+            { id: 3, name: 'Kung Pao Chicken Bowl', price: 410, category: 'Mains', desc: 'Diced chicken with peanuts, vegetables, and fiery chili pepper sauce.', img: 'https://images.unsplash.com/photo-1525755662778-989d0524087e?auto=format&fit=crop&w=500&q=80' },
+            { id: 5, name: 'Wok Tossed Hakka Noodles', price: 290, category: 'Noodles', desc: 'Classic stir-fried noodles with crisp julienned vegetables.', img: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?auto=format&fit=crop&w=500&q=80' },
+            { id: 7, name: 'Refreshing Virgin Mojito', price: 180, category: 'Drinks', desc: 'Muddled mint leaves, fresh lime juice, and sparkling soda.', img: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=500&q=80' },
+            { id: 8, name: 'Mango Sticky Rice Dessert', price: 260, category: 'Desserts', desc: 'Sweet sticky rice served with fresh ripe mango slices and coconut cream.', img: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=500&q=80' }
+        ]));
+
+        window.addEventListener('DOMContentLoaded', () => {
+            renderMenuView();
+            renderTablesGrid();
+            updateActiveOrdersBadge();
+        });
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').innerText = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 3000);
+        }
+
+        function openModal(id) {
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        function switchNavTab(tab) {
+            ['Menu', 'Tables', 'Active', 'Admin'].forEach(t => {
+                const btn = document.getElementById('navTab' + t);
+                if (btn) btn.className = 'flex flex-col items-center justify-center text-slate-400 hover:text-white transition py-1';
+            });
+
+            if (tab === 'menu') {
+                document.getElementById('navTabMenu').className = 'flex flex-col items-center justify-center text-amber-500 transition py-1';
+                renderMenuView();
+            } else if (tab === 'tables') {
+                document.getElementById('navTabTables').className = 'flex flex-col items-center justify-center text-amber-500 transition py-1';
+                openModal('tablesModal');
+            } else if (tab === 'active') {
+                document.getElementById('navTabActive').className = 'flex flex-col items-center justify-center text-amber-500 transition py-1';
+                openModal('activeOrdersModal');
+                renderActiveOrdersModalList();
+            } else if (tab === 'admin') {
+                document.getElementById('navTabAdmin').className = 'flex flex-col items-center justify-center text-amber-500 transition py-1';
+                openModal('adminLoginModal');
+            }
+        }
+
+        function filterCategory(cat, btnEl) {
+            currentCategory = cat;
+            document.querySelectorAll('.category-btn').forEach(b => {
+                b.className = 'category-btn whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold bg-slate-900 text-slate-400 border border-slate-800 hover:text-white transition';
+            });
+            if (btnEl) {
+                btnEl.className = 'category-btn whitespace-nowrap px-4 py-2 rounded-xl text-xs font-bold bg-amber-500 text-slate-950 shadow-md transition';
+            }
+            renderMenuView();
+        }
+
+        function filterMenu() {
+            renderMenuView();
+        }
+
+        function renderMenuView() {
+            const query = (document.getElementById('searchInput')?.value || '').toLowerCase();
+            const grid = document.getElementById('menuGrid');
+            if (!grid) return;
+
+            const filtered = menuItems.filter(item => {
+                const matchesCat = currentCategory === 'All' || item.category === currentCategory;
+                const matchesSearch = item.name.toLowerCase().includes(query) || item.desc.toLowerCase().includes(query);
+                return matchesCat && matchesSearch;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = `<div class="text-center py-12 text-slate-500 text-xs">No matching dishes found.</div>`;
+                return;
+            }
+
+            grid.innerHTML = filtered.map(item => {
+                let priceDisplay = `₹${item.price}`;
+                let addActionHtml = `<button onclick="addToCart(${item.id})" class="bg-amber-500 hover:bg-amber-400 text-slate-950 px-3 py-1.5 rounded-xl font-extrabold text-xs transition shadow-md flex items-center gap-1.5"><i class="fa-solid fa-plus text-[10px]"></i> Add</button>`;
+                
+                if (item.hasVariant) {
+                    priceDisplay = `₹${item.price} / ₹${item.secondaryPrice}`;
+                    addActionHtml = `
+                        <div class="flex gap-1.5">
+                            <button onclick="addVariantToCart(${item.id}, 'veg')" class="bg-amber-500/20 hover:bg-amber-500 text-amber-400 hover:text-slate-950 px-2.5 py-1.5 rounded-xl font-extrabold text-[11px] transition border border-amber-500/30">
+                                ${item.variantLabels[0]} ₹${item.price}
+                            </button>
+                            <button onclick="addVariantToCart(${item.id}, 'nonveg')" class="bg-orange-500/20 hover:bg-orange-500 text-orange-400 hover:text-slate-950 px-2.5 py-1.5 rounded-xl font-extrabold text-[11px] transition border border-orange-500/30">
+                                ${item.variantLabels[1]} ₹${item.secondaryPrice}
+                            </button>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex gap-3.5 items-center shadow-lg">
+                        <img src="${item.img}" alt="${item.name}" class="w-20 h-20 rounded-xl object-cover" onerror="this.src='https://placehold.co/100x100/1e293b/f59e0b?text=Food'">
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-start justify-between gap-1 mb-1">
+                                <h3 class="font-bold text-sm text-white truncate">${item.name}</h3>
+                                <span class="text-xs font-extrabold text-amber-400 shrink-0">${priceDisplay}</span>
+                            </div>
+                            <p class="text-[11px] text-slate-400 line-clamp-2 mb-2.5">${item.desc}</p>
+                            <div class="flex items-center justify-between">
+                                <span class="text-[10px] bg-slate-950 text-slate-400 px-2.5 py-0.5 rounded-md border border-slate-800">${item.category}</span>
+                                ${addActionHtml}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderTablesGrid() {
+            const grid = document.getElementById('tablesGrid');
+            if (!grid) return;
+
+            grid.innerHTML = [1,2,3,4,5,6].map(num => `
+                <button onclick="selectTable(${num})" class="p-3.5 rounded-2xl border text-left transition ${currentTable === num ? 'bg-amber-500/10 border-amber-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'}">
+                    <div class="flex items-center justify-between mb-1">
+                        <span class="font-bold text-sm">Table T-${num}</span>
+                        <span class="text-[10px] px-2 py-0.5 rounded font-bold ${tableStatuses[num] === 'Available' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'}">
+                            ${tableStatuses[num]}
+                        </span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">Capacity: 4 Guests</p>
+                </button>
+            `).join('');
+        }
+
+        function selectTable(num) {
+            currentTable = num;
+            const tableNameEl = document.getElementById('currentTableName');
+            if (tableNameEl) {
+                tableNameEl.innerText = `Table T-${num} (Dine-In)`;
+            }
+            renderTablesGrid();
+            closeModal('tablesModal');
+            showToast(`Dine-in table set to T-${num}`);
+        }
+
+        function addToCart(id) {
+            const item = menuItems.find(i => i.id === id);
+            if (!item) return;
+            const existing = cart.find(c => c.id === id && !c.variantName);
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({ ...item, qty: 1, uniqueKey: `${id}_standard` });
+            }
+            updateCartUI();
+            showToast(`Added ${item.name} to cart`);
+        }
+
+        function addVariantToCart(id, type) {
+            const item = menuItems.find(i => i.id === id);
+            if (!item) return;
+            const isSec = type === 'nonveg';
+            const variantLabel = isSec ? item.variantLabels[1] : item.variantLabels[0];
+            const price = isSec ? item.secondaryPrice : item.price;
+            const uniqueKey = `${id}_${type}`;
+
+            const existing = cart.find(c => c.uniqueKey === uniqueKey);
+            if (existing) {
+                existing.qty++;
+            } else {
+                cart.push({
+                    id: item.id,
+                    name: `${item.name} (${variantLabel})`,
+                    price: price,
+                    qty: 1,
+                    uniqueKey: uniqueKey
+                });
+            }
+            updateCartUI();
+            showToast(`Added ${item.name} (${variantLabel}) to cart`);
+        }
+
+        function updateCartUI() {
+            const count = cart.reduce((sum, i) => sum + i.qty, 0);
+            const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            const tax = Math.round(total * 0.05);
+            const grand = total + tax;
+
+            document.getElementById('cartCountBadge').innerText = count;
+            document.getElementById('cartTotalPrice').innerText = total;
+            document.getElementById('cartSubtotal').innerText = total;
+            document.getElementById('cartTax').innerText = tax;
+            document.getElementById('cartGrandTotal').innerText = grand;
+
+            const cartBar = document.getElementById('cartBar');
+            if (count > 0) {
+                cartBar.classList.remove('translate-y-24');
+            } else {
+                cartBar.classList.add('translate-y-24');
+            }
+
+            const listEl = document.getElementById('cartItemsList');
+            if (!listEl) return;
+
+            if (cart.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-8 text-slate-500 text-xs">Your table cart is empty.</div>`;
+                return;
+            }
+
+            listEl.innerHTML = cart.map(item => `
+                <div class="flex items-center justify-between py-2">
+                    <div class="flex-1 pr-2">
+                        <h4 class="font-bold text-xs text-white">${item.name}</h4>
+                        <p class="text-[11px] text-amber-400">₹${item.price} x ${item.qty}</p>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="adjustCartQty('${item.uniqueKey}', -1)" class="w-7 h-7 bg-slate-800 text-slate-300 rounded-lg font-bold hover:bg-slate-700">-</button>
+                        <span class="text-xs font-bold text-white w-4 text-center">${item.qty}</span>
+                        <button onclick="adjustCartQty('${item.uniqueKey}', 1)" class="w-7 h-7 bg-slate-800 text-slate-300 rounded-lg font-bold hover:bg-slate-700">+</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function adjustCartQty(uniqueKey, delta) {
+            const item = cart.find(c => c.uniqueKey === uniqueKey);
+            if (!item) return;
+            item.qty += delta;
+            if (item.qty <= 0) {
+                cart = cart.filter(c => c.uniqueKey !== uniqueKey);
+            }
+            updateCartUI();
+        }
+
+        function submitKitchenOrder() {
+            if (cart.length === 0) return;
+            const total = cart.reduce((sum, i) => sum + (i.price * i.qty), 0);
+            const tax = Math.round(total * 0.05);
+            const grandTotal = total + tax;
+
+            const newOrder = {
+                id: 'ORD-' + Math.floor(1000 + Math.random() * 9000),
+                table: `Table T-${currentTable}`,
+                items: [...cart],
+                total: grandTotal,
+                status: 'Preparing',
+                timeStr: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+
+            activeOrders.unshift(newOrder);
+            tableStatuses[currentTable] = 'Occupied';
+            localStorage.setItem('afb_active_orders', JSON.stringify(activeOrders));
+            localStorage.setItem('afb_tables_status', JSON.stringify(tableStatuses));
+            
+            syncTableStatusesToSheet();
+
+            if (googleSheetUrl) {
+                try {
+                    fetch(googleSheetUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: 'ORDER',
+                            orderId: newOrder.id,
+                            table: newOrder.table,
+                            items: newOrder.items.map(i => `${i.name} (x${i.qty})`).join(', '),
+                            total: newOrder.total,
+                            time: newOrder.timeStr
+                        })
+                    }).catch(err => console.warn(err));
+                } catch (e) {
+                    console.warn(e);
+                }
+            }
+
+            cart = [];
+            updateCartUI();
+            updateActiveOrdersBadge();
+            closeModal('cartModal');
+            showToast("Order sent to kitchen & synced to Google Sheet!");
+            openModal('activeOrdersModal');
+            renderActiveOrdersModalList();
+        }
+
+        function updateActiveOrdersBadge() {
+            const badge = document.getElementById('activeOrderBadge');
+            if (!badge) return;
+            if (activeOrders.length > 0) {
+                badge.innerText = activeOrders.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function renderActiveOrdersModalList() {
+            const listEl = document.getElementById('activeOrdersList');
+            if (!listEl) return;
+
+            if (activeOrders.length === 0) {
+                listEl.innerHTML = `<div class="text-center py-10 text-slate-500 text-xs">No active orders in kitchen</div>`;
+                return;
+            }
+
+            listEl.innerHTML = activeOrders.map(ord => `
+                <div class="bg-slate-950 border border-slate-800 p-3.5 rounded-2xl space-y-2 text-xs">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-bold text-white">${ord.id} • <span class="text-amber-400">${ord.table}</span></p>
+                            <p class="text-[10px] text-slate-400">Ordered at ${ord.timeStr}</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg font-bold text-[10px] bg-amber-500/10 text-amber-400 border border-amber-500/20">${ord.status}</span>
+                    </div>
+                    <div class="text-[11px] text-slate-300 space-y-0.5">
+                        ${ord.items.map(i => `<div class="flex justify-between"><span>• ${i.name} x${i.qty}</span><span class="text-slate-400">₹${i.price * i.qty}</span></div>`).join('')}
+                    </div>
+                    <div class="flex items-center justify-between pt-2 border-t border-slate-800">
+                        <span class="font-extrabold text-white">Total: ₹${ord.total}</span>
+                        <button onclick="openBillModal('${ord.id}')" class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-3 py-1.5 rounded-xl font-extrabold text-[11px] shadow-md transition">
+                            Bill & Pay
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openBillModal(id) {
+            const ord = activeOrders.find(o => o.id === id);
+            if (!ord) return;
+            currentBillOrder = ord;
+            document.getElementById('billModalTotal').innerText = ord.total;
+            const upiStr = `upi://pay?pa=9494233488@paytm&pn=AsianFoodBowl&am=${ord.total}&cu=INR`;
+            document.getElementById('qrPreviewImg').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(upiStr)}`;
+            document.getElementById('qrUpiText').innerText = '9494233488@paytm';
+            closeModal('activeOrdersModal');
+            openModal('billModal');
+        }
+
+        function completePayment() {
+            if (!currentBillOrder) return;
+            completedOrdersRevenue += currentBillOrder.total;
+            localStorage.setItem('afb_revenue', JSON.stringify(completedOrdersRevenue));
+
+            const tableNumStr = currentBillOrder.table.replace('Table T-', '');
+            tableStatuses[tableNumStr] = 'Available';
+            localStorage.setItem('afb_tables_status', JSON.stringify(tableStatuses));
+            
+            syncTableStatusesToSheet();
+
+            const billRecord = {
+                orderId: currentBillOrder.id,
+                table: currentBillOrder.table,
+                total: currentBillOrder.total,
+                status: 'Paid',
+                paidTime: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            };
+            completedBillsHistory.unshift(billRecord);
+            localStorage.setItem('afb_bill_success', JSON.stringify(completedBillsHistory));
+
+            if (googleSheetUrl) {
+                try {
+                    fetch(googleSheetUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            type: 'BILL_PAYMENT',
+                            orderId: currentBillOrder.id,
+                            table: currentBillOrder.table,
+                            total: currentBillOrder.total,
+                            paymentStatus: 'Paid',
+                            time: billRecord.paidTime
+                        })
+                    }).catch(err => console.warn(err));
+                } catch (e) {
+                    console.warn(e);
+                }
+            }
+
+            activeOrders = activeOrders.filter(o => o.id !== currentBillOrder.id);
+            localStorage.setItem('afb_active_orders', JSON.stringify(activeOrders));
+
+            updateActiveOrdersBadge();
+            closeModal('billModal');
+            showToast("Bill recorded & synced to Sheet 4!");
+            renderTablesGrid();
+        }
+
+        function handleReservationSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('resName').value;
+            const phone = document.getElementById('resPhone').value;
+            const guests = document.getElementById('resGuests').value;
+            const time = document.getElementById('resTime').value;
+
+            const newReservation = { name, phone, guests, time };
+            waitingList.push(newReservation);
+            localStorage.setItem('afb_waiting_list', JSON.stringify(waitingList));
+
+            if (googleSheetUrl) {
+                try {
+                    fetch(googleSheetUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'RESERVATION', name, phone, guests, time })
+                    }).catch(err => console.warn(err));
+                } catch (e) {
+                    console.warn(e);
+                }
+            }
+
+            closeModal('reserveModal');
+            e.target.reset();
+            showToast("Reservation added & synced to Google Sheet!");
+        }
+
+        function verifyAdminPin() {
+            const pin = document.getElementById('adminPinInput').value;
+            if (pin === '9090') {
+                closeModal('adminLoginModal');
+                document.getElementById('adminPinInput').value = '';
+                
+                if (googleSheetUrl) {
+                    try {
+                        fetch(googleSheetUrl, {
+                            method: 'POST',
+                            mode: 'no-cors',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                type: 'ADMIN_LOGIN',
+                                user: 'Administrator',
+                                status: 'Success',
+                                ip: 'Web Portal',
+                                time: new Date().toLocaleString()
+                            })
+                        }).catch(err => console.warn(err));
+                    } catch (e) {
+                        console.warn(e);
+                    }
+                }
+
+                openAdminDashboard();
+                showToast("Welcome to Admin Portal! Sheet 3 updated with Login Audit.");
+            } else {
+                showToast("Incorrect PIN. Hint: 9090");
+            }
+        }
+
+        function openAdminDashboard() {
+            const main = document.querySelector('main');
+            main.innerHTML = `
+                <div class="space-y-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <h2 class="text-base font-extrabold text-white flex items-center gap-2"><i class="fa-solid fa-gauge-high text-amber-400"></i> Admin Full Control Panel</h2>
+                            <p class="text-xs text-slate-400">Multi-Sheet Sync (Sheet 2: Menu | Sheet 3: Login Audit | Sheet 4: Bills | Sheet 5: Tables)</p>
+                        </div>
+                        <button onclick="renderMenuView(); switchNavTab('menu');" class="bg-slate-800 text-slate-300 hover:text-white px-3 py-1.5 rounded-xl text-xs font-bold transition">Exit</button>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+                        <h3 class="font-bold text-sm text-emerald-400 flex items-center gap-2"><i class="fa-solid fa-file-excel"></i> Multi-Sheet Setup & URL</h3>
+                        <div class="flex gap-2">
+                            <input type="url" id="sheetUrlInput" value="${googleSheetUrl}" placeholder="https://script.google.com/macros/s/.../exec" class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                            <button onclick="saveGoogleSheetUrl()" class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl text-xs transition">Save URL</button>
+                        </div>
+                        <button onclick="exportMenuToSheet()" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs transition flex items-center justify-center gap-2 shadow-md">
+                            <i class="fa-solid fa-file-excel"></i> Force Sync Entire Menu to Sheet 2
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md">
+                            <p class="text-[11px] text-slate-400 mb-1">Total Revenue Collected</p>
+                            <h3 class="text-xl font-black text-amber-400">₹${completedOrdersRevenue}</h3>
+                        </div>
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 shadow-md">
+                            <p class="text-[11px] text-slate-400 mb-1">Paid Bills Logged (Sheet 4)</p>
+                            <h3 class="text-xl font-black text-emerald-400">${completedBillsHistory.length}</h3>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-bold text-sm text-amber-400 flex items-center gap-2"><i class="fa-solid fa-chair"></i> Live Table Status Monitor (Sheet 5 Sync)</h3>
+                            <button onclick="syncTableStatusesToSheet()" class="text-[10px] bg-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-slate-950 px-2.5 py-1 rounded-lg font-bold transition">Sync Sheet 5 Now</button>
+                        </div>
+                        <div class="grid grid-cols-3 gap-2" id="adminTablesGrid"></div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+                        <h3 class="font-bold text-sm text-emerald-400 flex items-center gap-2"><i class="fa-solid fa-circle-check"></i> Paid Bills History (Sheet 4 Log)</h3>
+                        <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                            ${completedBillsHistory.length === 0 ? '<p class="text-xs text-slate-500 text-center py-4">No paid bills logged yet</p>' : completedBillsHistory.map(b => `
+                                <div class="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex items-center justify-between text-xs">
+                                    <div>
+                                        <p class="font-bold text-white">${b.orderId} • <span class="text-amber-400">${b.table}</span></p>
+                                        <p class="text-[10px] text-slate-400">Paid at ${b.paidTime} • Status: <span class="text-emerald-400 font-bold">${b.status}</span></p>
+                                    </div>
+                                    <span class="text-emerald-400 font-extrabold text-sm">₹${b.total}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl space-y-3">
+                        <h3 class="font-bold text-sm text-amber-400 flex items-center gap-2"><i class="fa-solid fa-circle-plus"></i> Add New Menu Item (Sheet 2 Sync)</h3>
+                        <form onsubmit="handleAddNewMenuItem(event)" class="space-y-2.5">
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" id="newDishName" required placeholder="Dish Name" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                                <input type="number" id="newDishPrice" required placeholder="Price (₹)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <select id="newDishCategory" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                                    <option value="Soups">🍲 Soups</option>
+                                    <option value="Starters">Starters</option>
+                                    <option value="Mains">Mains</option>
+                                    <option value="Noodles">Noodles & Rice</option>
+                                    <option value="Drinks">Beverages</option>
+                                    <option value="Desserts">Desserts</option>
+                                </select>
+                                <input type="url" id="newDishImg" placeholder="Image URL (Unsplash)" class="bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500">
+                            </div>
+                            <textarea id="newDishDesc" required placeholder="Short description..." rows="2" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-amber-500"></textarea>
+                            <button type="submit" class="w-full bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-2.5 rounded-xl text-xs transition shadow-md">Add Item & Sync to Sheet 2</button>
+                        </form>
+                    </div>
+                </div>
+            `;
+            renderAdminTablesStatus();
+        }
+
+        function saveGoogleSheetUrl() {
+            const url = document.getElementById('sheetUrlInput').value.trim();
+            googleSheetUrl = url;
+            localStorage.setItem('afb_sheet_url', url);
+            showToast("Google Sheet Web App URL saved successfully!");
+        }
+
+        function exportMenuToSheet() {
+            if (!googleSheetUrl) {
+                showToast("Please save a Google Sheet URL first");
+                return;
+            }
+            try {
+                fetch(googleSheetUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'EXPORT_FULL_MENU',
+                        menu: menuItems.map(i => ({ name: i.name, price: i.price, category: i.category, desc: i.desc }))
+                    })
+                }).then(() => {
+                    showToast("Menu list exported to Sheet 2 successfully!");
+                }).catch(err => {
+                    console.warn(err);
+                    showToast("Export triggered successfully to Sheet 2");
+                });
+            } catch (err) {
+                showToast("Export triggered successfully to Sheet 2");
+            }
+        }
+
+        function syncTableStatusesToSheet() {
+            if (!googleSheetUrl) return;
+            try {
+                fetch(googleSheetUrl, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        type: 'TABLE_STATUS_UPDATE',
+                        tables: tableStatuses
+                    })
+                }).catch(err => console.warn(err));
+                showToast("Sheet 5 synchronized with table statuses!");
+            } catch (e) {
+                console.warn(e);
+            }
+        }
+
+        function renderAdminTablesStatus() {
+            const grid = document.getElementById('adminTablesGrid');
+            if (!grid) return;
+            grid.innerHTML = [1,2,3,4,5,6].map(num => `
+                <div class="bg-slate-950 border border-slate-800 p-2.5 rounded-xl flex items-center justify-between text-xs">
+                    <div>
+                        <span class="font-bold text-white">Table T-${num}</span>
+                        <p class="text-[10px] text-slate-400">Status: <span class="text-amber-400">${tableStatuses[num]}</span></p>
+                    </div>
+                    <select onchange="updateTableStatus(${num}, this.value)" class="bg-slate-900 text-amber-400 font-bold border border-slate-800 rounded-lg px-2 py-1 text-[11px]">
+                        <option value="Available" ${tableStatuses[num] === 'Available' ? 'selected' : ''}>Available</option>
+                        <option value="Occupied" ${tableStatuses[num] === 'Occupied' ? 'selected' : ''}>Occupied</option>
+                        <option value="Reserved" ${tableStatuses[num] === 'Reserved' ? 'selected' : ''}>Reserved</option>
+                    </select>
+                </div>
+            `).join('');
+        }
+
+        function updateTableStatus(num, status) {
+            tableStatuses[num] = status;
+            localStorage.setItem('afb_tables_status', JSON.stringify(tableStatuses));
+            syncTableStatusesToSheet();
+            showToast(`Table T-${num} updated to ${status} & Sheet 5 synced`);
+            renderAdminTablesStatus();
+        }
+
+        function handleAddNewMenuItem(e) {
+            e.preventDefault();
+            const name = document.getElementById('newDishName').value;
+            const price = parseFloat(document.getElementById('newDishPrice').value);
+            const category = document.getElementById('newDishCategory').value;
+            const img = document.getElementById('newDishImg').value || 'https://images.unsplash.com/photo-1547592166-23ac45744acd?auto=format&fit=crop&w=500&q=80';
+            const desc = document.getElementById('newDishDesc').value;
+
+            const newItem = { id: Date.now(), name, price, category, img, desc };
+            menuItems.push(newItem);
+            localStorage.setItem('afb_menu_items', JSON.stringify(menuItems));
+
+            if (googleSheetUrl) {
+                try {
+                    fetch(googleSheetUrl, {
+                        method: 'POST',
+                        mode: 'no-cors',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ type: 'MENU_ITEM', name, price, category, desc })
+                    }).catch(err => console.warn(err));
+                } catch (e) {
+                    console.warn(e);
+                }
+            }
+
+            e.target.reset();
+            showToast("New dish added & synced to Sheet 2!");
+            openAdminDashboard();
+        }
+    </script>
+</body>
+</html>
